@@ -18,7 +18,6 @@ function App() {
     };
     setTodos([...todos, newTodo]);      // yeni todo onceki todos larla beraber setTodos a eklenir
     //console.log(newTodo);
-    //dasdsadadfsdfs
   };
 
   return (
