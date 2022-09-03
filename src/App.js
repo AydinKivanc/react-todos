@@ -36,7 +36,7 @@ function App() {
     // searchedTodo da id esit olani alip ondan updatedTodo ile yeni bir todo olusturduk. Eski olani todos icinden cikarmak icin
     // filteredTodos ile esit olmayanlarin tumunu cagirip yeni bir dizi olustururuz filtre ederiz.
     // Bylelikle isDone degeri degismemis olan eski todo yu todos dizisinden cikarmis oluruz.
-    // Sonrasinda updatedTodo ile yeni olusturulmus obje todos a eklenecek
+    // Sonrasinda updatedTodo ile yeni olusturulmus obje todos a eklenecek.
     setTodos([...filteredTodos, updatedTodo]);
     console.log(filteredTodos);
   };
