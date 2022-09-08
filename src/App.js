@@ -1,10 +1,22 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import Todo from "./components/Todo";
+import TodoForm from "./components/TodoForm";
 
 function App() {
   const [todoText, setTodoText] = useState(""); // form input daki text in state i
   const [todos, setTodos] = useState([]); // listelenen todosların state i
   const [isEdit, setIsEdit] = useState(false); // edit todo yazi icerigi
   const [willUpdateTodo, setWillUpdateTodo] = useState(""); // hangi todo nun update edileceginin id sini tutariz
+
+  useEffect(() => {
+    const todosFromLocalStorage = localStorage.getItem("todos"); // localStorage dan todos lari cekiyoruz. key i "todos" degeri string cunku LS string tutar.
+    console.log(todosFromLocalStorage); // cosole a bastigimizda null geldigini gorunce alttaki if kosulunu yazdik
+    if (todosFromLocalStorage === null) {
+      localStorage.setItem("todos", JSON.stringify([])); // eger LS de todos yoksa LS ye bos bir array ekliyoruz.
+    } else {
+      setTodos(JSON.parse(todosFromLocalStorage)); // eger LS de todos varsa setTodos a LS dekileri atiyoruz. JSON.parse ile stringleri js objeye array e ceviriyoruz.
+    }
+  }, []);
 
   const handleSubmit = (event) => {
     event.preventDefault(); // prevent default formun defaultu submit ile gonderme islemini durdurur
@@ -25,7 +37,15 @@ function App() {
       const searchedTodo = todos.find((item) => item.id === willUpdateTodo); // itemleri geziyor ve willUpdateTodo nun id sine esit olan item i buluyor
       const updatedTodo = { ...searchedTodo, text: todoText }; //  ustsatirda bulunan item (searchedTodo) nun ...searchedTodo ile tum ozellikler getirilip, text i todoText e esit olacak sekilde yeni bir obje olusturuyoruz
       const filteredTodos = todos.filter((item) => item.id !== willUpdateTodo); // willUpdateTodo nun id sine esit olmayan item leri filtreliyoruz. Yeni sini 1 us satirda olusturduk eskisini bu satirda cikarip yeni listeyi donuyoruz.
+
+      // ! ----------- EDIT ISLEMI ------------
       setTodos([...filteredTodos, updatedTodo].sort((a, b) => a.id - b.id)); // yeni listeyi set ediyoruz ve sonrasinda id sirasina gore siraladik;
+      localStorage.setItem(
+        "todos",
+        JSON.stringify(
+          [...filteredTodos, updatedTodo].sort((a, b) => a.id - b.id)
+        )
+      ); // LS ye yeni listeyi kaydediyoruz
       setTodoText(""); // inputu temizliyoruz
       setIsEdit(false); // edit durumunu false yapiyoruz
       setWillUpdateTodo(""); // willUpdateTodo nun id sini temizliyoruz
@@ -37,9 +57,11 @@ function App() {
         text: todoText, // assagiya todos.map icinde {item.text} olarak todoText gider
         date: new Date(),
       };
-      setTodos([...todos, newTodo]); // yeni todo onceki todos larla beraber setTodos a eklenir. Spread operator
-      setTodoText(""); // form input daki text in state i bosaltir. Input icinde yazi kalmaz.
       //console.log(newTodo);
+      // ! ----------- EKLEME ISLEMI ------------
+      setTodos([...todos, newTodo]); // yeni todo onceki todos larla beraber setTodos a eklenir. Spread operator
+      localStorage.setItem("todos", JSON.stringify([...todos, newTodo])); // LS ye yeni todo lar eklenir. Spread operator
+      setTodoText(""); // form input daki text in state i bosaltir. Input icinde yazi kalmaz.
     }
   };
 
@@ -57,9 +79,14 @@ function App() {
     // searchedTodo da id esit olani alip ondan updatedTodo ile yeni bir todo olusturduk. Eski olani todos icinden cikarmak icin
     // filteredTodos ile esit olmayanlarin tumunu cagirip yeni bir dizi olustururuz filtre ederiz.
     // Bylelikle isDone degeri degismemis olan eski todo yu todos dizisinden cikarmis oluruz.
-    // Sonrasinda updatedTodo ile yeni olusturulmus obje todos a eklenecek.
-    setTodos([updatedTodo, ...filteredTodos]);
-    console.log(filteredTodos);
+    // Sonrasinda updatedTodo ile yeni olusturulmus obje, todos a eklenecek.
+    // ! ----------- DONE - UNDONE ISLEMI ------------
+    setTodos([...filteredTodos, updatedTodo].sort((a, b) => a.id - b.id)); // yeni listeyi set ediyoruz ve sonrasinda id sirasina gore siraladik;
+    //console.log(filteredTodos);
+    localStorage.setItem(
+      "todos",
+      JSON.stringify([...filteredTodos, updatedTodo])
+    ); // LS ye yeni todo lar eklenir. Spread operator
   };
 
   const deleteTodo = (id) => {
@@ -68,80 +95,43 @@ function App() {
     const filteredTodos = todos.filter((item) => item.id !== id);
     // filteredTodos ile esit olmayanlarin tumunu cagirip yeni bir dizi olustururuz filtre ederiz.
     // Bylelikle silinmek istenen todo yu todos dizisinden cikarmis oluruz.
+    // ! ----------- SILME ISLEMI ------------
     setTodos([...filteredTodos]);
     // setTodos(filteredTodos);  Boyle de yapilabilir. Spread operator kullanmadan. Ama spread operator kullanmak daha iyi. Cunku daha guvenli.
-    console.log(filteredTodos);
+    //console.log(filteredTodos);
+    localStorage.setItem("todos", JSON.stringify([...filteredTodos])); // LS ye yeni todo lar eklenir. Spread operator
   };
 
   return (
     <div className="container">
       <h1 className="text-center my-5">Todo App</h1>
-      <form onSubmit={handleSubmit}>
-        <div className="input-group mb-3">
-          <input
-            value={todoText}
-            type="text"
-            className="form-control"
-            placeholder="Type your todo"
-            onChange={(event) => setTodoText(event.target.value)}
-          />
-          <button
-            className={`btn btn-${
-              isEdit === true ? "success" : "primary"
-            } btn-block`}
-            type="submit" // form icindeki button a submit olarak type verdik.
-            id="button-addon2"
-          >
-            {isEdit === true ? "Save" : "Add"}
-          </button>
-        </div>
-      </form>
+      <TodoForm
+        handleSubmit={handleSubmit}
+        todoText={todoText}
+        setTodoText={setTodoText}
+        isEdit={isEdit}
+      />
       {todos.lenght <= 0 ? ( // indexi 0 a esit veya kucukse ? () degilse : () yapar.
         <p className="text-center my-5">You don't have any todos</p> // .lenght <= ? ()  : ()    bu if yapisini genelde JSX de kullaniriz
       ) : (
         <>
-          {todos.map((item) => {
-            // suslu parantez yaparsak return yazariz ve jsx doneriz.    .map(item => ()) bu sekilde yazarsak () kendisi return islemidir
-            return (
-              <div
-                // className="alert alert-secondary d-flex justify-content-between align-items-center"   Eski hali
-                className={`alert alert-${
-                  item.isDone === true ? "info" : "secondary"
-                } d-flex justify-content-between align-items-center`} //string ifade icine js yazmak icin {`$`} kullandik
-                role="alert"
-              >
-                <p>{item.text}</p>
-                {/* {isEdit === true ? <input /> : <p>{item.text}</p>} Edit i satirda input acarak yapmaktan vazgectik*/}
-                <div>
-                  <button
-                    className="btn btn-sm btn-danger"
-                    // Delete button a tiklandiginda o todo nun id sini alir ve deleteTodo fonksiyonuna gonderir.
-                    onClick={() => deleteTodo(item.id)}
-                  >
-                    Delete
-                  </button>
-                  <button
-                    className="btn btn-sm btn-success mx-1"
-                    // onClick={() => editTodo(item.id)} // item in id sini button a click oldugunda parametre olarak editTodo functinuna gonderir.
-                    onClick={() => {
-                      // edit butonuna tiklandiginda todo nun text i input a yazilir.
-                      setIsEdit(true);
-                      setWillUpdateTodo(item.id); //
-                      setTodoText(item.text);
-                    }}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => changeIsDone(item.id)}
-                    className="btn btn-sm btn-secondary"
-                  >
-                    {item.isDone === false ? "Done" : "Undone"}
-                  </button>
-                </div>
+          {todos.map(
+            (
+              item,
+              index // altta donerken Todo yu  => () degilde => {} yaparsak return yazmamiz gerekir. coklu yazimda kullaniriz. Cunku {} icindeki hersey birsey dondurur. burada sadece todo donduk
+            ) => (
+              <div key={index}>
+                <Todo
+                  item={item}
+                  changeIsDone={changeIsDone}
+                  deleteTodo={deleteTodo}
+                  setIsEdit={setIsEdit}
+                  setWillUpdateTodo={setWillUpdateTodo}
+                  setTodoText={setTodoText}
+                />
               </div>
-            );
-          })}
+            )
+          )}
         </>
       )}
     </div>
